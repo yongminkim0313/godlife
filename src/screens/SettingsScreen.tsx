@@ -7,6 +7,8 @@ import type { InstitutionKind, Region } from '../types';
 import { offsetLabel } from '../lib/date';
 import { OFFSET_CHOICES, ensurePermission } from '../lib/notifications';
 import { PRESET_REGIONS, searchRegion } from '../lib/weather';
+import { useMailAccount } from '../store/useMailAccount';
+import { getGoogleClientId, setGoogleClientId } from '../lib/mail/gmail';
 
 const INSTITUTIONS: InstitutionKind[] = ['kindergarten', 'daycare', 'home'];
 
@@ -19,6 +21,16 @@ export function SettingsScreen() {
   const [results, setResults] = useState<Region[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const mail = useMailAccount();
+  const [clientId, setClientId] = useState(() => getGoogleClientId());
+  const [clientIdSaved, setClientIdSaved] = useState(false);
+
+  const saveClientId = () => {
+    setGoogleClientId(clientId);
+    setClientIdSaved(true);
+    mail.refresh();
+    window.setTimeout(() => setClientIdSaved(false), 2000);
+  };
 
   const pickRegion = (region: Region) => {
     updateSettings({ region });
@@ -55,6 +67,53 @@ export function SettingsScreen() {
               placeholder="보호자"
             />
           </label>
+        </div>
+
+        <p className="section-title">메일 계정</p>
+        <div className="card">
+          {mail.account ? (
+            <div className="row between">
+              <div className="grow">
+                <strong className="small">{mail.provider.label} 연결됨</strong>
+                <p className="muted small" style={{ margin: '4px 0 0' }}>
+                  {mail.account.email} · 읽기 전용
+                </p>
+              </div>
+              <button className="btn" onClick={mail.disconnect}>
+                연결 해제
+              </button>
+            </div>
+          ) : (
+            <div className="row between">
+              <span className="small">{mail.provider.label} 연결 안 됨</span>
+              <button className="btn" onClick={() => void mail.connect()} disabled={!mail.configured || mail.connecting}>
+                {mail.connecting ? '연결 중…' : '연결'}
+              </button>
+            </div>
+          )}
+          {mail.error && (
+            <p className="small" style={{ color: 'var(--danger)' }}>
+              {mail.error}
+            </p>
+          )}
+
+          <label className="field" style={{ marginTop: 14, marginBottom: 0 }}>
+            <span>구글 OAuth 클라이언트 ID</span>
+            <input
+              type="text"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              placeholder="000000-xxxx.apps.googleusercontent.com"
+            />
+          </label>
+          <button className="btn block" style={{ marginTop: 8 }} onClick={saveClientId}>
+            {clientIdSaved ? '저장됨' : '클라이언트 ID 저장'}
+          </button>
+          <p className="muted small" style={{ marginBottom: 0, marginTop: 10 }}>
+            Google Cloud 콘솔에서 <strong>웹 애플리케이션</strong> OAuth 클라이언트를 만들고, 승인된 자바스크립트 원본에
+            이 앱 주소를 넣은 뒤 클라이언트 ID를 붙여넣으세요. 클라이언트 ID는 비밀값이 아니며 기기에만 저장됩니다.
+            Gmail 읽기 권한만 요청하고, 메일 본문은 기기 안에서만 처리됩니다.
+          </p>
         </div>
 
         <p className="section-title">알림</p>

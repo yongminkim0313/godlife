@@ -48,7 +48,7 @@ interface AppActions {
   excludeOccurrence(id: string, date: string): void;
   setOccurrenceStatus(scheduleId: string, date: string, status: ScheduleStatus): void;
   togglePreparation(scheduleId: string, preparationId: string): void;
-  importMail(subject: string, rawEmail: string): MailImport;
+  importMail(subject: string, rawEmail: string, options?: { receivedAt?: string }): MailImport;
   updateMail(id: string, patch: Partial<MailImport>): void;
   approveMail(id: string, items: ParsedItem[]): Schedule[];
   discardMail(id: string): void;
@@ -263,14 +263,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         );
         markDirty();
       },
-      importMail(subject, rawEmail) {
+      importMail(subject, rawEmail, options) {
         const now = new Date().toISOString();
+        // 계획표에 연도가 없을 때 수신 시각으로 연/월을 추정하므로, 메일의 실제 수신 시각을 넘긴다.
+        const receivedAt = options?.receivedAt ?? now;
         const mail: MailImport = {
           id: uid('mail'),
           subject,
-          receivedAt: now,
+          receivedAt,
           rawEmail,
-          parsedItems: parseMail(rawEmail, { receivedAt: new Date() }),
+          parsedItems: parseMail(rawEmail, { receivedAt: new Date(receivedAt) }),
           reviewStatus: 'pending',
           createdAt: now,
           updatedAt: now,
