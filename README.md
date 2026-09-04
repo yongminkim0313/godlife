@@ -2,7 +2,7 @@
 
 어린이집·유치원 일정과 가정 일정을 한곳에서 관리하고, 알림·재알림으로 실천을 돕는 육아 스케줄 앱.
 
-기획서(핵심요구 1~7 + 추가기능 3.1~3.4)를 **React + TypeScript PWA**로 구현했습니다.
+기획서(핵심요구 1~7 + 추가기능 3.1~3.4)를 **Vue 3 + Pinia + TypeScript PWA**로 구현했습니다.
 서버·계정 없이 온디바이스(localStorage)에서 동작하므로, 클론 후 바로 실행해 전체 흐름을 확인할 수 있습니다.
 
 ```bash
@@ -10,7 +10,7 @@ npm install
 npm run dev        # 개발 서버
 npm run build      # 프로덕션 빌드 (tsc + vite)
 npm run preview    # 빌드 결과 확인 (서비스 워커·오프라인 동작 포함)
-npm test           # 단위 테스트 91개
+npm test           # 단위 테스트 103개
 npm run typecheck  # 타입 검사
 ```
 
@@ -22,17 +22,17 @@ npm run typecheck  # 타입 검사
 
 | 기획서 | 구현 | 위치 |
 |---|---|---|
-| 1. 반복 일정 | 매주 반복(요일 다중 선택·종료일·회차별 제외/상태) | `src/lib/repeat.ts`, `src/screens/ScheduleForm.tsx` |
-| 2. 메일 자동 등록 (AI) | Gmail 계정 연동 또는 본문 붙여넣기 → 일정·준비물 후보 추출 | `src/lib/mail/`, `src/lib/mailParser.ts`, `src/screens/MailImportScreen.tsx` |
-| 3. 다중 알림 | 5·10·30·60분 전, 하루 전 동시 설정 | `src/lib/notifications.ts`, `src/screens/NotificationSettings.tsx` |
-| 4. 월간 달력 | 6주 그리드, 기관별 색 점, 날짜별 목록 | `src/screens/CalendarScreen.tsx` |
-| 5. 기관 필터 | 유치원/어린이집/가정 토글 (홈·달력 공유) | `src/components/InstitutionFilter.tsx` |
-| 6. 위젯 | 다음 일정 + 날씨 + 준비물 위젯 렌더링 | `src/screens/WidgetPreview.tsx` |
-| 7. 재알림 | 종료 후 실천 확인 → 미완료 시 스누즈(간격·횟수 설정) | `src/lib/notifications.ts`, `src/components/NotificationInbox.tsx` |
+| 1. 반복 일정 | 매주 반복(요일 다중 선택·종료일·회차별 제외/상태) | `src/lib/repeat.ts`, `src/screens/ScheduleFormScreen.vue` |
+| 2. 메일 자동 등록 (AI) | Gmail 계정 연동 또는 본문 붙여넣기 → 일정·준비물 후보 추출 | `src/lib/mail/`, `src/lib/mailParser.ts`, `src/screens/MailImportScreen.vue` |
+| 3. 다중 알림 | 5·10·30·60분 전, 하루 전 동시 설정 | `src/lib/notifications.ts`, `src/screens/NotificationSettingsScreen.vue` |
+| 4. 월간 달력 | 6주 그리드, 기관별 색 점, 날짜별 목록 | `src/screens/CalendarScreen.vue` |
+| 5. 기관 필터 | 유치원/어린이집/가정 토글 (홈·달력 공유) | `src/components/InstitutionFilter.vue` |
+| 6. 위젯 | 다음 일정 + 날씨 + 준비물 위젯 렌더링 | `src/screens/WidgetPreviewScreen.vue` |
+| 7. 재알림 | 종료 후 실천 확인 → 미완료 시 스누즈(간격·횟수 설정) | `src/lib/notifications.ts`, `src/components/NotificationInbox.vue` |
 | 3.1 날씨 연동 | Open-Meteo 예보, 홈·달력·상세·위젯 표시, 비/눈 알림 | `src/lib/weather.ts` |
 | 3.2 오프라인 캐싱 | 로컬 저장 + 서비스 워커 앱 셸 + 온라인 복귀 시 병합 | `src/lib/db.ts`, `src/lib/sync.ts`, `public/sw.js` |
-| 3.3 AI 파싱 검토 화면 | 승인 전 확인·수정·삭제·추가, 신뢰도 낮은 항목 강조 | `src/screens/AiReview.tsx` |
-| 3.4 준비물 알림 | 준비물 목록 관리 + 하루 전 알림에 첨부 | `src/components/PreparationList.tsx`, `composeCopy()` |
+| 3.3 AI 파싱 검토 화면 | 승인 전 확인·수정·삭제·추가, 신뢰도 낮은 항목 강조 | `src/screens/AiReviewScreen.vue` |
+| 3.4 준비물 알림 | 준비물 목록 관리 + 하루 전 알림에 첨부 | `src/components/PreparationList.vue`, `composeCopy()` |
 
 ## 메일 계정 연동 (Gmail)
 
@@ -66,7 +66,7 @@ npm run typecheck  # 타입 검사
 
 ## 화면 (라우트)
 
-`HashRouter` 기준. 기획서 4장의 화면 이동 흐름을 그대로 따릅니다.
+`vue-router`의 해시 모드 기준. 화면은 라우트 단위로 지연 로딩됩니다. 기획서 4장의 화면 이동 흐름을 그대로 따릅니다.
 
 | 화면 | 경로 |
 |---|---|
@@ -84,6 +84,22 @@ npm run typecheck  # 타입 검사
 
 기관 필터는 별도 화면 대신 홈·달력 상단에 상주하는 칩으로 두었습니다(한 번에 보고 바로 토글하는 쪽이 목적에 맞습니다).
 알림 발생 화면은 라우트가 아니라 어느 화면에서든 뜨는 알림 카드(`NotificationInbox`)로 구현했습니다.
+
+## 구조
+
+```
+src/lib/      도메인 로직 (프레임워크 무관, 순수 TypeScript)
+src/types/    데이터 모델
+src/stores/   Pinia 스토어 (앱 상태 · 액션)
+src/composables/  메일 계정 연결 상태
+src/screens/  화면 SFC (라우트 단위 지연 로딩)
+src/components/  공용 SFC
+src/router/   라우트 정의
+```
+
+도메인 로직(`src/lib`)과 타입은 Vue에 의존하지 않습니다. 화면을 다시 만들어도 파서·알림 엔진·
+동기화·테스트는 그대로 재사용됩니다. 실제로 React로 만들었던 초기 버전을 Vue로 옮길 때
+이 계층과 91개 테스트는 한 줄도 고치지 않았습니다.
 
 ## 데이터 모델
 
@@ -109,6 +125,9 @@ LLM으로 바꿀 때는 `parseMail()`이 `ParsedItem[]`을 돌려주는 계약�
 사전 알림(5·10분·하루 전)은 아직 일정이 시작되지 않았으므로 완료/미완료를 묻지 않고 확인만 받습니다.
 완료 여부는 일정이 끝난 뒤 뜨는 실천 확인 알림에서 묻고, **미완료**를 고르면 설정한 간격·횟수만큼 재알림이 붙습니다.
 
+**상태 저장 시점** — 스토어 액션은 상태를 바꾼 뒤 *같은 호출 안에서* 저장소에 기록하고 나서 동기화를 깨웁니다.
+저장을 감시자(watch)에 맡기면 동기화가 아직 반영되지 않은 저장소를 읽어 방금 만든 변경을 덮어쓸 수 있습니다.
+
 **오프라인** — 일정·계획표·설정·날씨 캐시가 모두 기기에 있어 네트워크 없이도 조회·등록·수정이 됩니다.
 서비스 워커가 앱 셸을 캐시해 오프라인 새로고침도 동작합니다. 온라인이 되면 `SyncEngine`이 백그라운드로 병합합니다
 (`updatedAt`이 큰 쪽이 이기는 마지막 저장 우선). 서버가 붙기 전까지는 `RemoteAdapter`의 로컬 미러 구현을 사용합니다.
@@ -119,7 +138,7 @@ LLM으로 바꿀 때는 `parseMail()`이 `ParsedItem[]`을 돌려주는 계약�
 npm test
 ```
 
-반복 규칙 전개, 메일 파서(날짜·시간·준비물·신뢰도), Gmail 본문 디코딩·HTML 표 평문화·API 클라이언트, 알림 생성/스누즈/문구, 오프라인 캐시와 동기화 병합, 날씨 조회·캐시까지 91개 테스트가 있습니다.
+반복 규칙 전개, 메일 파서(날짜·시간·준비물·신뢰도), Gmail 본문 디코딩·HTML 표 평문화·API 클라이언트, 알림 생성/스누즈/문구, 오프라인 캐시와 동기화 병합, 날씨 조회·캐시, Pinia 스토어(저장 시점·승인 전 등록 금지·재알림·스코프 정리)까지 103개 테스트가 있습니다.
 브라우저 스모크(스플래시 → 로그인 → 샘플 → 검토·승인 → 상세 → 위젯 → 오프라인 새로고침)도 Playwright로 확인했습니다.
 
 ## 아직 남은 것 / 다음 단계
