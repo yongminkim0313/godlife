@@ -1,0 +1,43 @@
+services:
+  web:
+    build:
+      context: .
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+    image: godlife:latest
+    container_name: godlife
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTPS_PORT:-443}:443/udp" # HTTP/3
+    environment:
+      SITE_ADDRESS: "${SITE_ADDRESS:?.env에 SITE_ADDRESS를 지정하세요. 예 godlife.example.com}"
+      CADDY_TLS: ${CADDY_TLS:-}
+    volumes:
+      # 발급받은 인증서. 이 볼륨이 사라지면 재발급하느라 Let's Encrypt 한도를 소모한다.
+      - caddy_data:/data
+      - caddy_config:/config
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # 포트포워딩(80/443)을 열 수 없는 망에서 쓰는 대안.
+  #   docker compose --profile tunnel up -d
+  # Cloudflare Zero Trust에서 터널을 만들고 토큰을 .env의 CF_TUNNEL_TOKEN에 넣는다.
+  # 이때 web은 평문 80만 쓰면 되므로 .env에 SITE_ADDRESS=":80", CADDY_TLS= 로 둔다.
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: godlife-tunnel
+    restart: unless-stopped
+    profiles: ["tunnel"]
+    command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN:-}
+    depends_on:
+      - web
+
+volumes:
+  caddy_data:
+  caddy_config:

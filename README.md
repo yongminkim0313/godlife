@@ -135,6 +135,55 @@ LLM으로 바꿀 때는 `parseMail()`이 `ParsedItem[]`을 돌려주는 계약�
 `Vary: Origin` 때문에, Origin 없이 저장된 precache 응답이 Origin을 보내는 모듈 스크립트 요청과 매칭되지 않습니다. 온라인이 되면 `SyncEngine`이 백그라운드로 병합합니다
 (`updatedAt`이 큰 쪽이 이기는 마지막 저장 우선). 서버가 붙기 전까지는 `RemoteAdapter`의 로컬 미러 구현을 사용합니다.
 
+## 배포 (Docker + HTTPS)
+
+`church-server` 같은 상시 서버에 컨테이너로 올립니다. 빌드는 이미지 안에서 일어나므로
+서버에 Node를 깔 필요가 없고, Caddy가 인증서 발급·갱신까지 맡습니다.
+
+```bash
+git clone https://github.com/yongminkim0313/godlife.git
+cd godlife
+cp .env.docker.example .env     # 값 채우기 (아래 표 참고)
+docker compose up -d --build
+```
+
+### TLS 방식은 `.env`의 두 값으로 정합니다
+
+| 상황 | `SITE_ADDRESS` | `CADDY_TLS` | 비고 |
+|---|---|---|---|
+| 공인 도메인이 서버를 가리키고 80·443 개방 | `godlife.example.com` | `tls you@example.com` | Let's Encrypt 자동 발급·갱신 |
+| LAN 전용 (공인 도메인 없음) | `church-server.local` | `tls internal` | Caddy 내부 CA, 기기마다 루트 CA 신뢰 필요 |
+| 포트포워딩 불가 | `:80` | (비움) | `docker compose --profile tunnel up -d` + `CF_TUNNEL_TOKEN` |
+
+LAN 모드에서 브라우저 경고를 없애려면 루트 CA를 꺼내 접속 기기에 신뢰시킵니다.
+
+```bash
+docker compose cp web:/data/caddy/pki/authorities/local/root.crt .
+```
+
+### HTTPS가 필요한 이유
+
+브라우저는 아래 기능을 보안 컨텍스트(HTTPS 또는 localhost)에서만 허용합니다. http로 열면
+일정 관리는 되지만 이 셋이 빠집니다.
+
+- **서비스 워커** — 오프라인 조회·새로고침
+- **알림 권한** — OS 알림 (없으면 앱 내 알림 카드로만)
+- **Gmail 연동** — 구글이 https가 아닌 원본을 OAuth에 허용하지 않음
+
+Gmail을 쓰려면 발급된 https 주소를 Google Cloud 콘솔의 **승인된 자바스크립트 원본**에도 추가하세요.
+
+### 운영
+
+```bash
+docker compose logs -f web          # 로그 (인증서 발급 과정 포함)
+docker compose up -d --build        # 새 버전 배포
+docker compose down                 # 중지 (인증서 볼륨은 유지)
+curl -sf https://<도메인>/healthz    # 상태 확인
+```
+
+배포 후 새 버전이 사용자에게 바로 전파되도록 `index.html`·`sw.js`는 `no-cache`,
+해시가 붙은 `/assets/*`는 1년 `immutable`로 응답합니다.
+
 ## 테스트
 
 ```bash
