@@ -22,7 +22,8 @@ const routes = [
 ];
 
 export const router = createRouter({
-  history: createWebHashHistory(),
+  // 하위 경로 배포를 따라간다. 예: /godlife/#/home
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   routes,
   scrollBehavior: () => ({ top: 0 }),
 });

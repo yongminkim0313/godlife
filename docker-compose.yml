@@ -3,6 +3,7 @@ services:
     build:
       context: .
       args:
+        BASE_PATH: ${BASE_PATH:-/godlife/}
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
     image: godlife:latest
     container_name: godlife
@@ -14,6 +15,7 @@ services:
     environment:
       SITE_ADDRESS: "${SITE_ADDRESS:?.env에 SITE_ADDRESS를 지정하세요. 예 godlife.example.com}"
       CADDY_TLS: ${CADDY_TLS:-}
+      APP_PATH: ${APP_PATH:-/godlife}
     volumes:
       # 발급받은 인증서. 이 볼륨이 사라지면 재발급하느라 Let's Encrypt 한도를 소모한다.
       - caddy_data:/data

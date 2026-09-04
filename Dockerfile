@@ -9,6 +9,11 @@ WORKDIR /app
 ARG VITE_GOOGLE_CLIENT_ID=""
 ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 
+# 도메인 아래 어느 경로에 붙일지. 번들에 구워지므로 빌드 시점에 정해야 한다.
+# Caddyfile 의 APP_PATH 와 반드시 같아야 한다 (여기는 끝에 슬래시가 붙는다).
+ARG BASE_PATH="/godlife/"
+ENV BASE_PATH=$BASE_PATH
+
 # 소스보다 잠금 파일이 덜 바뀌므로 의존성 레이어를 먼저 굳힌다.
 COPY package.json package-lock.json ./
 RUN npm ci

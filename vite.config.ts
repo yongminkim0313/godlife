@@ -3,8 +3,12 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { precachePlugin } from './src/build/precache-plugin';
 
+// youthvision.co.kr/godlife 처럼 하위 경로로 서빙한다. 루트로 옮기려면 BASE_PATH=/ 로 빌드.
+const base = process.env.BASE_PATH ?? '/godlife/';
+
 export default defineConfig({
-  plugins: [vue(), precachePlugin()],
+  base,
+  plugins: [vue(), precachePlugin(base)],
   /*
    * 원격 컨테이너·터널을 통해 열어볼 때를 위한 설정.
    * Vite 5는 Host 헤더가 localhost가 아니면 403으로 막는데, 프록시 도메인으로 들어오는

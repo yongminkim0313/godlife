@@ -2,17 +2,18 @@
   "name": "하루동행 · 육아 스케줄",
   "short_name": "하루동행",
   "description": "어린이집·유치원 일정과 가정 일정을 한곳에서 관리하고 알림·재알림으로 실천을 돕습니다.",
-  "start_url": "/#/home",
+  "start_url": "./#/home",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f5f6f8",
   "theme_color": "#3d7dff",
   "lang": "ko",
   "icons": [
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ],
   "shortcuts": [
-    { "name": "일정 등록", "url": "/#/schedule/new" },
-    { "name": "월간 달력", "url": "/#/calendar" },
-    { "name": "메일 가져오기", "url": "/#/mail" }
+    { "name": "일정 등록", "url": "./#/schedule/new" },
+    { "name": "월간 달력", "url": "./#/calendar" },
+    { "name": "메일 가져오기", "url": "./#/mail" }
   ]
 }

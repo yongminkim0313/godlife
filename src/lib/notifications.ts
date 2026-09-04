@@ -148,7 +148,7 @@ export async function ensurePermission(): Promise<NotificationPermission> {
 export function deliver(copy: NotificationCopy, tag: string): boolean {
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return false;
   try {
-    new Notification(copy.title, { body: copy.body, tag, icon: '/icon.svg' });
+    new Notification(copy.title, { body: copy.body, tag, icon: `${import.meta.env.BASE_URL}icon.svg` });
     return true;
   } catch {
     return false;

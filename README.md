@@ -137,28 +137,62 @@ LLM으로 바꿀 때는 `parseMail()`이 `ParsedItem[]`을 돌려주는 계약�
 
 ## 배포 (Docker + HTTPS)
 
-`church-server` 같은 상시 서버에 컨테이너로 올립니다. 빌드는 이미지 안에서 일어나므로
-서버에 Node를 깔 필요가 없고, Caddy가 인증서 발급·갱신까지 맡습니다.
+상시 서버에 컨테이너로 올립니다. 빌드가 이미지 안에서 일어나므로 서버에 Node가 필요 없고,
+Caddy가 인증서 발급·갱신까지 맡습니다. 기본 배포 위치는 도메인 아래 **`/godlife`** 입니다
+(예: `https://youthvision.co.kr/godlife/`).
 
 ```bash
 git clone https://github.com/yongminkim0313/godlife.git
 cd godlife
-cp .env.docker.example .env     # 값 채우기 (아래 표 참고)
+cp .env.docker.example .env     # 값 채우기
 docker compose up -d --build
 ```
 
-### TLS 방식은 `.env`의 두 값으로 정합니다
+### 경로 설정
 
-| 상황 | `SITE_ADDRESS` | `CADDY_TLS` | 비고 |
-|---|---|---|---|
-| 공인 도메인이 서버를 가리키고 80·443 개방 | `godlife.example.com` | `tls you@example.com` | Let's Encrypt 자동 발급·갱신 |
-| LAN 전용 (공인 도메인 없음) | `church-server.local` | `tls internal` | Caddy 내부 CA, 기기마다 루트 CA 신뢰 필요 |
-| 포트포워딩 불가 | `:80` | (비움) | `docker compose --profile tunnel up -d` + `CF_TUNNEL_TOKEN` |
+| 값 | 기본 | 설명 |
+|---|---|---|
+| `BASE_PATH` | `/godlife/` | 번들에 구워지는 base. **끝에 슬래시 필수**, 바꾸면 `--build` 재빌드 |
+| `APP_PATH` | `/godlife` | Caddy가 받는 경로. 끝 슬래시 없음 |
+
+둘은 같은 경로를 가리켜야 합니다. 루트로 옮기려면 `BASE_PATH=/`, `APP_PATH=""` 로 두고 재빌드합니다.
+
+### TLS 방식
+
+| 상황 | `SITE_ADDRESS` | `CADDY_TLS` |
+|---|---|---|
+| 이 컨테이너가 도메인을 직접 받음 (80·443 개방) | `youthvision.co.kr` | `tls you@youthvision.co.kr` |
+| 앞단 웹서버가 도메인을 받고 프록시 | `:80` | (비움) + `HTTP_PORT=8080` |
+| LAN 전용 | `church-server.local` | `tls internal` |
+| 포트포워딩 불가 | `:80` | (비움) + `--profile tunnel` |
 
 LAN 모드에서 브라우저 경고를 없애려면 루트 CA를 꺼내 접속 기기에 신뢰시킵니다.
 
 ```bash
 docker compose cp web:/data/caddy/pki/authorities/local/root.crt .
+```
+
+### 앞단 웹서버가 이미 도메인을 받고 있다면
+
+`/godlife/` 를 **경로를 자르지 말고 그대로** 이 컨테이너로 넘겨야 합니다. 컨테이너의 Caddy가
+`/godlife` 를 직접 처리하기 때문에, 앞단에서 경로를 벗겨 보내면 404가 납니다.
+
+nginx:
+
+```nginx
+location /godlife/ {
+    proxy_pass http://127.0.0.1:8080;   # 끝에 경로를 붙이지 않아야 원본 URI가 유지됩니다
+    proxy_set_header Host              $host;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+Apache:
+
+```apache
+ProxyPass        /godlife/ http://127.0.0.1:8080/godlife/
+ProxyPassReverse /godlife/ http://127.0.0.1:8080/godlife/
 ```
 
 ### HTTPS가 필요한 이유
@@ -170,19 +204,21 @@ docker compose cp web:/data/caddy/pki/authorities/local/root.crt .
 - **알림 권한** — OS 알림 (없으면 앱 내 알림 카드로만)
 - **Gmail 연동** — 구글이 https가 아닌 원본을 OAuth에 허용하지 않음
 
-Gmail을 쓰려면 발급된 https 주소를 Google Cloud 콘솔의 **승인된 자바스크립트 원본**에도 추가하세요.
+Gmail을 쓰려면 `https://youthvision.co.kr` 을 Google Cloud 콘솔의 **승인된 자바스크립트 원본**에
+추가하세요.
 
 ### 운영
 
 ```bash
-docker compose logs -f web          # 로그 (인증서 발급 과정 포함)
-docker compose up -d --build        # 새 버전 배포
-docker compose down                 # 중지 (인증서 볼륨은 유지)
-curl -sf https://<도메인>/healthz    # 상태 확인
+docker compose logs -f web                        # 로그 (인증서 발급 과정 포함)
+docker compose up -d --build                      # 새 버전 배포
+docker compose down                               # 중지 (인증서 볼륨은 유지)
+curl -sf https://youthvision.co.kr/godlife/healthz # 상태 확인
 ```
 
-배포 후 새 버전이 사용자에게 바로 전파되도록 `index.html`·`sw.js`는 `no-cache`,
+배포 후 새 버전이 바로 전파되도록 `index.html`·`sw.js`는 `no-cache`,
 해시가 붙은 `/assets/*`는 1년 `immutable`로 응답합니다.
+서비스 워커 scope는 `/godlife/` 로 한정되어 같은 도메인의 다른 앱과 충돌하지 않습니다.
 
 ## 테스트
 

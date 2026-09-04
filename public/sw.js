@@ -3,11 +3,13 @@
  * 일정 데이터 자체는 localStorage에 있으므로, 서비스 워커는 HTML/JS/CSS만 캐시해
  * 네트워크 없이도 앱이 뜨게 만든다.
  *
- * PRECACHE 목록과 CACHE 이름은 빌드할 때 실제 산출물로 치환된다
+ * PRECACHE 목록·CACHE 이름·BASE는 빌드할 때 실제 값으로 치환된다
  * (src/build/precache-plugin.ts). 개발 서버에서는 워커를 등록하지 않는다.
  */
 const CACHE = 'godlife-__CACHE_VERSION__';
 const PRECACHE = '__PRECACHE_MANIFEST__';
+// 하위 경로 배포(예: /godlife/)를 따라간다.
+const BASE = '__BASE__';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -46,7 +48,7 @@ self.addEventListener('fetch', (event) => {
   // 내비게이션은 network-first, 실패하면 캐시된 앱 셸.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(async () => (await fromCache('/index.html')) ?? (await fromCache('/')) ?? Response.error()),
+      fetch(request).catch(async () => (await fromCache(BASE + 'index.html')) ?? (await fromCache(BASE)) ?? Response.error()),
     );
     return;
   }
